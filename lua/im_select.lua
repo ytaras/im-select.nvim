@@ -145,26 +145,28 @@ local function change_im_select(cmd, method)
     end
     table.insert(args, method)
 
-    local handle
-    handle, _ = vim.loop.spawn(
-        cmd[1],
-        { args = args, detach = true },
-        vim.schedule_wrap(function(_, _)
-            if handle and not handle:is_closing() then
-                handle:close()
-            end
-            M.closed = true
-        end)
-    )
-    if not handle then
-        vim.api.nvim_err_writeln([[[im-select]: Failed to spawn process for ]] .. cmd)
-    end
+    vim.defer_fn(function()
+        local handle
+        handle, _ = vim.loop.spawn(
+            cmd[1],
+            { args = args, detach = true },
+            vim.schedule_wrap(function(_, _)
+                if handle and not handle:is_closing() then
+                    handle:close()
+                end
+                M.closed = true
+            end)
+        )
+        if not handle then
+            vim.api.nvim_err_writeln([[[im-select]: Failed to spawn process for ]] .. cmd)
+        end
 
-    if not C.async_switch_im then
-        vim.wait(5000, function()
-            return M.closed
-        end, 200)
-    end
+        if not C.async_switch_im then
+            vim.wait(5000, function()
+                return M.closed
+            end, 200)
+        end
+    end, 200)
 end
 
 local function restore_default_im()
